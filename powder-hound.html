@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Powder Hound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one header with controls, a three-part summary strip, then a grid of region cards.
+   Each card leads with snow depth, then recent and forecast snowfall, then a 14-day bar strip. */
+:root {
+  --bg: #E9F0F4;
+  --surface: #F8FBFC;
+  --ink: #10222D;
+  --ink-2: #3F5666;
+  --muted: #5B7080;
+  --line: #CCDAE3;
+  --accent: #1A68A0;
+  --accent-soft: #D3E5F2;
+  --warn: #B4500E;
+  --warn-soft: #F8E3D3;
+  --ok: #17724A;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B171F;
+    --surface: #12232D;
+    --ink: #E7F1F6;
+    --ink-2: #B3C7D3;
+    --muted: #8CA5B4;
+    --line: #243C4C;
+    --accent: #62B6EC;
+    --accent-soft: #1B4560;
+    --warn: #F2A062;
+    --warn-soft: #4A2E19;
+    --ok: #52C48E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B171F;
+  --surface: #12232D;
+  --ink: #E7F1F6;
+  --ink-2: #B3C7D3;
+  --muted: #8CA5B4;
+  --line: #243C4C;
+  --accent: #62B6EC;
+  --accent-soft: #1B4560;
+  --warn: #F2A062;
+  --warn-soft: #4A2E19;
+  --ok: #52C48E;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-block: max(20px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+a { color: var(--accent); }
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(34px, 6vw, 52px);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.sub { margin: 6px 0 0; color: var(--ink-2); }
+.sub b { font-weight: 600; color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.field { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 13px; }
+select, .btn {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.btn:hover, select:hover { border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  min-height: 36px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 600; }
+
+/* Banner for stale or failed loads */
+.banner {
+  background: var(--warn-soft);
+  color: var(--ink);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+/* Summary strip */
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sum {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sum .big { font-family: var(--font-display); font-weight: 600; font-size: 30px; line-height: 1.1; margin-top: 4px; overflow-wrap: anywhere; }
+.sum .big small { font-size: 16px; font-weight: 500; color: var(--ink-2); margin-left: 6px; }
+@media (max-width: 720px) { .summary { grid-template-columns: 1fr; } }
+
+/* Region grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.card h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.1; }
+.where { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.incoming, .pill.fresh { color: var(--accent); background: var(--accent-soft); }
+.pill.warm { color: var(--warn); background: var(--warn-soft); }
+.pill.cover { color: var(--ok); }
+.pill.thin, .pill.bare, .pill.unk { color: var(--muted); }
+.pill.thin::before, .pill.bare::before, .pill.unk::before { background: transparent; border: 1.5px solid currentColor; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat .num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.stat .num small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+.stat .num.hot { color: var(--accent); }
+.stat .label { font-size: 10.5px; letter-spacing: 0.06em; }
+
+svg.bars { width: 100%; height: auto; display: block; overflow: visible; }
+.bars .base { stroke: var(--line); stroke-width: 1; }
+.bars .past { fill: var(--accent); }
+.bars .fcst { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+.bars text { fill: var(--muted); font-family: var(--font-body); font-size: 10px; }
+.bars text.peak { fill: var(--ink); font-weight: 600; }
+.bars .hit { fill: transparent; }
+.key { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: -6px; }
+.key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.key .k-past { background: var(--accent); }
+.key .k-fcst { background: var(--accent-soft); border: 1px solid var(--accent); }
+
+.fl { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 10px; }
+.fl b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fl .above { color: var(--warn); font-weight: 600; }
+
+details summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 500; }
+.tablewrap { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+th { font-weight: 600; color: var(--muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+tr.today td { font-weight: 600; }
+.aval { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); }
+
+.empty { text-align: center; padding: 48px 16px; color: var(--ink-2); }
+.skeleton { height: 250px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+
+footer { color: var(--muted); font-size: 12.5px; display: flex; flex-direction: column; gap: 8px; max-width: 78ch; }
+footer p { margin: 0; }
+
+#tip {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Powder Hound</h1>
+      <p class="sub" id="sub">Loading snow conditions across Europe</p>
+    </div>
+    <div class="controls">
+      <label class="field">Sort by
+        <select id="sort">
+          <option value="next72">Snow in next 3 days</option>
+          <option value="last24">New snow, last 24 h</option>
+          <option value="past7">Snowfall, last 7 days</option>
+          <option value="depth">Snow depth</option>
+          <option value="name">Name A to Z</option>
+        </select>
+      </label>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <div class="chips" id="chips" role="group" aria-label="Filter by area"></div>
+  <div id="banner" class="banner" hidden></div>
+  <section class="summary" id="summary" aria-label="Highlights"></section>
+  <main class="grid" id="grid" aria-live="polite"></main>
+
+  <footer>
+    <p>Figures come from weather models (mostly DWD ICON and ECMWF, picked automatically per region), sampled at one reference elevation per region. They show where snow is likely and how regions compare. They are not station measurements and say nothing about a specific slope.</p>
+    <p>Avalanche danger is not part of this data. Before any off-piste or touring day, read the official bulletin linked in each card.</p>
+    <p>Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0, free for non-commercial use).</p>
+  </footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+"use strict";
+
+/* ---------- Regions ---------- */
+// elev = reference elevation in metres (roughly mid to upper mountain)
+var REGIONS = [
+  // Alps
+  { id: "chamonix",  name: "Chamonix",            cc: "FR", area: "Alps",    lat: 45.92, lon: 6.87,  elev: 2000 },
+  { id: "tignes",    name: "Val d'Isère / Tignes", cc: "FR", area: "Alps",    lat: 45.45, lon: 6.98,  elev: 2500 },
+  { id: "3vallees",  name: "Les 3 Vallées",       cc: "FR", area: "Alps",    lat: 45.30, lon: 6.58,  elev: 2400 },
+  { id: "lagrave",   name: "La Grave",            cc: "FR", area: "Alps",    lat: 45.05, lon: 6.30,  elev: 2400 },
+  { id: "zermatt",   name: "Zermatt",             cc: "CH", area: "Alps",    lat: 46.02, lon: 7.75,  elev: 2500 },
+  { id: "verbier",   name: "Verbier",             cc: "CH", area: "Alps",    lat: 46.10, lon: 7.23,  elev: 2300 },
+  { id: "davos",     name: "Davos / Klosters",    cc: "CH", area: "Alps",    lat: 46.80, lon: 9.84,  elev: 2200 },
+  { id: "engelberg", name: "Engelberg",           cc: "CH", area: "Alps",    lat: 46.82, lon: 8.40,  elev: 2000 },
+  { id: "stanton",   name: "St. Anton",           cc: "AT", area: "Alps",    lat: 47.13, lon: 10.27, elev: 2200 },
+  { id: "ischgl",    name: "Ischgl",              cc: "AT", area: "Alps",    lat: 46.97, lon: 10.29, elev: 2400 },
+  { id: "soelden",   name: "Sölden",              cc: "AT", area: "Alps",    lat: 46.97, lon: 11.00, elev: 2600 },
+  { id: "kitz",      name: "Kitzbühel",           cc: "AT", area: "Alps",    lat: 47.45, lon: 12.39, elev: 1600 },
+  { id: "courmayeur",name: "Courmayeur",          cc: "IT", area: "Alps",    lat: 45.80, lon: 6.97,  elev: 2200 },
+  { id: "livigno",   name: "Livigno",             cc: "IT", area: "Alps",    lat: 46.54, lon: 10.14, elev: 2300 },
+  { id: "cortina",   name: "Cortina d'Ampezzo",   cc: "IT", area: "Alps",    lat: 46.54, lon: 12.14, elev: 2000, bulletin: "avalanche.report" },
+  { id: "gardena",   name: "Val Gardena",         cc: "IT", area: "Alps",    lat: 46.56, lon: 11.67, elev: 2000, bulletin: "avalanche.report" },
+  // Nordics
+  { id: "lyngen",    name: "Lyngen Alps",         cc: "NO", area: "Nordics", lat: 69.60, lon: 20.20, elev: 600 },
+  { id: "voss",      name: "Voss",                cc: "NO", area: "Nordics", lat: 60.63, lon: 6.42,  elev: 800 },
+  { id: "hemsedal",  name: "Hemsedal",            cc: "NO", area: "Nordics", lat: 60.86, lon: 8.55,  elev: 1000 },
+  { id: "riksgransen",name: "Riksgränsen",        cc: "SE", area: "Nordics", lat: 68.43, lon: 18.12, elev: 700 },
+  { id: "are",       name: "Åre",                 cc: "SE", area: "Nordics", lat: 63.40, lon: 13.08, elev: 900 },
+  { id: "levi",      name: "Levi",                cc: "FI", area: "Nordics", lat: 67.80, lon: 24.80, elev: 400 },
+  { id: "akureyri",  name: "Hlíðarfjall, Akureyri", cc: "IS", area: "Nordics", lat: 65.68, lon: -18.09, elev: 600 },
+  // Iberia
+  { id: "baqueira",  name: "Baqueira-Beret",      cc: "ES", area: "Iberia",  lat: 42.70, lon: 0.93,  elev: 2000 },
+  { id: "sierranev", name: "Sierra Nevada",       cc: "ES", area: "Iberia",  lat: 37.10, lon: -3.40, elev: 2500 },
+  // Other
+  { id: "tatras",    name: "Tatras, Kasprowy Wierch", cc: "PL", area: "Other", lat: 49.23, lon: 19.98, elev: 1800 },
+  { id: "bansko",    name: "Bansko",              cc: "BG", area: "Other",   lat: 41.83, lon: 23.49, elev: 1900 },
+  { id: "cairngorm", name: "Cairngorms",          cc: "GB", area: "Other",   lat: 57.12, lon: -3.67, elev: 900 }
+];
+var AREAS = ["All", "Alps", "Nordics", "Iberia", "Other"];
+var COUNTRY = { FR: "France", CH: "Switzerland", AT: "Austria", IT: "Italy", NO: "Norway", SE: "Sweden", FI: "Finland", IS: "Iceland", ES: "Spain", PL: "Poland", BG: "Bulgaria", GB: "Scotland" };
+
+var BULLETIN = {
+  CH: ["SLF avalanche bulletin", "https://www.slf.ch/en/avalanche-bulletin-and-snow-situation/"],
+  AT: ["Lawinen.report", "https://lawinen.report/"],
+  FR: ["Météo-France", "https://meteofrance.com/"],
+  NO: ["Varsom", "https://www.varsom.no/en/"],
+  SE: ["Lavinprognoser", "https://lavinprognoser.se/"],
+  IS: ["Icelandic Met Office", "https://www.vedur.is/"],
+  PL: ["TOPR", "https://lawiny.topr.pl/"],
+  GB: ["SAIS", "https://www.sais.gov.uk/"],
+  "avalanche.report": ["Avalanche.report", "https://avalanche.report/"],
+  EAWS: ["EAWS (all European bulletins)", "https://www.avalanches.org/"]
+};
+
+/* ---------- Logic (pure, no DOM) ---------- */
+// <logic>
+var DAYS = 14, TODAY_INDEX = 7, HOURS_PER_DAY = 24;
+var FIELDS = "snowfall,snow_depth,freezing_level_height,temperature_2m";
+
+function sumRange(arr, a, b) {
+  var s = 0, i;
+  a = Math.max(0, a); b = Math.min(arr.length - 1, b);
+  for (i = a; i <= b; i++) { if (arr[i] != null) s += arr[i]; }
+  return s;
+}
+function numbers(arr, a, b) {
+  var out = [], i;
+  for (i = a; i <= b && i < arr.length; i++) { if (arr[i] != null) out.push(arr[i]); }
+  return out;
+}
+function nearestValue(arr, idx) {
+  var d, v;
+  for (d = 0; d < 6; d++) {
+    v = arr[idx - d]; if (v != null) return v;
+    v = arr[idx + d]; if (v != null) return v;
+  }
+  return null;
+}
+
+// r: one Open-Meteo location object. refMs: the moment treated as "now".
+function computeMetrics(region, r, refMs) {
+  var h = r.hourly;
+  var local = new Date(refMs + (r.utc_offset_seconds || 0) * 1000);
+  var key = local.toISOString().slice(0, 13) + ":00";
+  var idx = h.time.indexOf(key);
+  if (idx < 0) idx = TODAY_INDEX * HOURS_PER_DAY + local.getUTCHours();
+  idx = Math.min(idx, h.time.length - 1);
+
+  var snow = h.snowfall || [], depth = h.snow_depth || [], fl = h.freezing_level_height || [], t2 = h.temperature_2m || [];
+  var depthNow = nearestValue(depth, idx);
+  var depthWeek = nearestValue(depth, idx - 168);
+  var flNow = nearestValue(fl, idx);
+
+  var warmHours = 0, i;
+  for (i = idx + 1; i <= idx + 48 && i < fl.length; i++) { if (fl[i] != null && fl[i] > region.elev) warmHours++; }
+
+  var days = [], d, a, b, tmin, tmax, flv;
+  for (d = 0; d < DAYS; d++) {
+    a = d * HOURS_PER_DAY; b = a + HOURS_PER_DAY - 1;
+    if (a >= h.time.length) break;
+    tmin = numbers(t2, a, b); flv = numbers(fl, a, b);
+    days.push({
+      date: h.time[a].slice(0, 10),
+      snow: sumRange(snow, a, b),
+      tmin: tmin.length ? Math.min.apply(null, tmin) : null,
+      tmax: tmin.length ? Math.max.apply(null, tmin) : null,
+      flMax: flv.length ? Math.max.apply(null, flv) : null
+    });
+  }
+
+  var m = {
+    region: region,
+    depthCm: depthNow == null ? null : Math.round(depthNow * 100),
+    depthChange: (depthNow == null || depthWeek == null) ? null : Math.round((depthNow - depthWeek) * 100),
+    last24: sumRange(snow, idx - 23, idx),
+    past7: sumRange(snow, idx - 167, idx),
+    next72: sumRange(snow, idx + 1, idx + 72),
+    flNow: flNow,
+    warmHours: warmHours,
+    days: days
+  };
+  m.status = statusOf(m);
+  return m;
+}
+
+function statusOf(m) {
+  if (m.warmHours >= 6) return { key: "warm", label: "Warm spell" };
+  if (m.next72 >= 20) return { key: "incoming", label: "Snow incoming" };
+  if (m.last24 >= 10) return { key: "fresh", label: "Fresh snow" };
+  if (m.depthCm == null) return { key: "unk", label: "No depth data" };
+  if (m.depthCm >= 30) return { key: "cover", label: "Good cover" };
+  if (m.depthCm >= 5) return { key: "thin", label: "Thin cover" };
+  return { key: "bare", label: "No cover" };
+}
+
+function sortMetrics(list, how) {
+  var out = list.slice();
+  out.sort(function (a, b) {
+    if (how === "name") return a.region.name.localeCompare(b.region.name);
+    if (how === "depth") {
+      var da = a.depthCm == null ? -1 : a.depthCm, db = b.depthCm == null ? -1 : b.depthCm;
+      return db - da || a.region.name.localeCompare(b.region.name);
+    }
+    return (b[how] - a[how]) || a.region.name.localeCompare(b.region.name);
+  });
+  return out;
+}
+
+function buildUrl(regions) {
+  function col(f) { return regions.map(f).join(","); }
+  return "https://api.open-meteo.com/v1/forecast" +
+    "?latitude=" + col(function (r) { return r.lat; }) +
+    "&longitude=" + col(function (r) { return r.lon; }) +
+    "&elevation=" + col(function (r) { return r.elev; }) +
+    "&hourly=" + FIELDS +
+    "&past_days=7&forecast_days=7&timezone=auto";
+}
+// </logic>
+
+/* ---------- Data loading ---------- */
+var BATCH = 10, CACHE_KEY = "powderhound:v1", FRESH_MS = 30 * 60 * 1000;
+var state = { metrics: [], fetchedAt: 0, area: "All", sort: "next72", stale: false, loading: false };
+
+function store(key, value) { try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); } catch (e) { return null; } }
+
+async function fetchBatch(regions) {
+  var res = await fetch(buildUrl(regions));
+  if (!res.ok) {
+    var reason = "";
+    try { reason = (await res.json()).reason || ""; } catch (e) {}
+    throw new Error("Open-Meteo answered " + res.status + (reason ? " (" + reason + ")" : ""));
+  }
+  var json = await res.json();
+  var list = Array.isArray(json) ? json : [json];
+  if (list.length !== regions.length) throw new Error("Open-Meteo returned " + list.length + " locations, expected " + regions.length);
+  return list;
+}
+
+async function fetchAll() {
+  var batches = [], i;
+  for (i = 0; i < REGIONS.length; i += BATCH) batches.push(REGIONS.slice(i, i + BATCH));
+  var parts = await Promise.all(batches.map(fetchBatch));
+  return [].concat.apply([], parts);
+}
+
+function toMetrics(raw, refMs) {
+  return REGIONS.map(function (region, i) { return computeMetrics(region, raw[i], refMs); });
+}
+
+async function load(force) {
+  var cached = null, raw = store(CACHE_KEY);
+  if (raw) { try { cached = JSON.parse(raw); } catch (e) { cached = null; } }
+  if (!force && cached && Date.now() - cached.t < FRESH_MS) {
+    state.metrics = toMetrics(cached.data, cached.t); state.fetchedAt = cached.t; state.stale = false;
+    render(); return;
+  }
+  state.loading = true; render();
+  try {
+    var data = await fetchAll();
+    var t = Date.now();
+    store(CACHE_KEY, JSON.stringify({ t: t, data: data }));
+    state.metrics = toMetrics(data, t); state.fetchedAt = t; state.stale = false; state.error = null;
+  } catch (err) {
+    if (cached) {
+      state.metrics = toMetrics(cached.data, cached.t); state.fetchedAt = cached.t; state.stale = true;
+    } else {
+      state.metrics = []; state.error = err.message || "Could not reach Open-Meteo";
+    }
+    state.lastError = err.message;
+  }
+  state.loading = false;
+  render();
+}
+
+/* ---------- Rendering ---------- */
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function cm(v) { if (v == null) return "–"; if (v > 0 && v < 1) return "<1"; return String(Math.round(v)); }
+function plus(v) { return v > 0 && v < 1 ? "<1" : "+" + Math.round(v); }
+function metres(v) { return v == null ? "–" : Math.round(v).toLocaleString("en-GB") + " m"; }
+function clock(ms) { return new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); }
+function dayLabel(iso) { return new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }); }
+
+function barsSvg(m, ceiling) {
+  var W = 280, base = 62, maxH = 46, bw = 16, step = 20, out = [], peak = -1, i, d, h, x, y, cls, tip;
+  m.days.forEach(function (day, k) { if (k > TODAY_INDEX && (peak < 0 || day.snow > m.days[peak].snow)) peak = k; });
+  out.push('<svg class="bars" viewBox="0 0 ' + W + ' 84" role="img" aria-label="Daily snowfall in centimetres, seven days back to seven days ahead">');
+  out.push('<line class="base" x1="0" x2="' + W + '" y1="' + base + '.5" y2="' + base + '.5"/>');
+  for (i = 0; i < m.days.length; i++) {
+    d = m.days[i];
+    h = d.snow > 0.05 ? Math.max(1.5, d.snow / ceiling * maxH) : 0;
+    x = i * step; y = base - h;
+    cls = i > TODAY_INDEX ? "fcst" : "past";
+    tip = dayLabel(d.date) + ": " + (d.snow < 0.05 ? "no snow" : d.snow.toFixed(1) + " cm") + (d.flMax != null ? " · freezing level up to " + metres(d.flMax) : "");
+    if (h > 0) out.push('<rect class="' + cls + '" x="' + x + '" y="' + y.toFixed(1) + '" width="' + bw + '" height="' + h.toFixed(1) + '" rx="2"/>');
+    out.push('<rect class="hit" x="' + (x - 2) + '" y="0" width="' + (step) + '" height="' + (base + 1) + '" data-tip="' + esc(tip) + '"/>');
+  }
+  if (peak > 0 && m.days[peak].snow >= 5) {
+    var ph = Math.max(1.5, m.days[peak].snow / ceiling * maxH);
+    out.push('<text class="peak" x="' + (peak * step + bw / 2) + '" y="' + (base - ph - 3).toFixed(1) + '" text-anchor="middle">' + Math.round(m.days[peak].snow) + '</text>');
+  }
+  out.push('<text x="0" y="78" text-anchor="start">7 days ago</text>');
+  out.push('<text x="' + (TODAY_INDEX * step + bw / 2) + '" y="78" text-anchor="middle">today</text>');
+  out.push('<text x="' + W + '" y="78" text-anchor="end">in 7 days</text>');
+  out.push("</svg>");
+  return out.join("");
+}
+
+function bulletinLink(region) {
+  var b = BULLETIN[region.bulletin] || BULLETIN[region.cc] || BULLETIN.EAWS;
+  return '<a href="' + b[1] + '" target="_blank" rel="noopener">' + esc(b[0]) + "</a>";
+}
+
+function cardHtml(m, ceiling) {
+  var r = m.region, s = m.status, above = m.flNow != null && m.flNow > r.elev;
+  var rows = m.days.map(function (d, k) {
+    return "<tr" + (k === TODAY_INDEX ? ' class="today"' : "") + "><td>" + dayLabel(d.date) + "</td><td>" + (d.snow < 0.05 ? "0" : d.snow.toFixed(1)) + "</td><td>" +
+      (d.tmin == null ? "–" : Math.round(d.tmin) + " / " + Math.round(d.tmax)) + "</td><td>" + metres(d.flMax) + "</td></tr>";
+  }).join("");
+  return '<article class="card">' +
+    '<div class="card-top"><div><h2>' + esc(r.name) + '</h2><p class="where">' + esc(COUNTRY[r.cc] || r.cc) + " · reference " + r.elev.toLocaleString("en-GB") + ' m</p></div>' +
+    '<span class="pill ' + s.key + '">' + s.label + "</span></div>" +
+    '<div class="stats">' +
+      '<div class="stat"><div class="num">' + cm(m.depthCm) + "<small>cm</small></div><div class=\"label\">Depth</div></div>" +
+      '<div class="stat"><div class="num' + (m.last24 >= 10 ? " hot" : "") + '">' + (m.last24 < 0.5 ? "0" : plus(m.last24)) + "<small>cm</small></div><div class=\"label\">Last 24 h</div></div>" +
+      '<div class="stat"><div class="num">' + (m.past7 < 0.5 ? "0" : plus(m.past7)) + "<small>cm</small></div><div class=\"label\">Last 7 d</div></div>" +
+      '<div class="stat"><div class="num' + (m.next72 >= 10 ? " hot" : "") + '">' + (m.next72 < 0.5 ? "0" : plus(m.next72)) + "<small>cm</small></div><div class=\"label\">Next 72 h</div></div>" +
+    "</div>" +
+    barsSvg(m, ceiling) +
+    '<div class="key"><span><i class="k-past"></i>Snowfall per day, past</span><span><i class="k-fcst"></i>Forecast</span></div>' +
+    '<div class="fl"><span>Freezing level <b>' + metres(m.flNow) + '</b></span><span class="' + (above ? "above" : "") + '">' + (m.flNow == null ? "" : (above ? "above " : "below ") + r.elev.toLocaleString("en-GB") + " m") + "</span></div>" +
+    "<details><summary>Daily detail and avalanche bulletin</summary>" +
+      '<div class="tablewrap"><table><thead><tr><th>Day</th><th>Snow cm</th><th>Temp °C</th><th>0 °C at</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<p class="aval">Check the official bulletin before leaving the piste: ' + bulletinLink(r) + ".</p>" +
+    "</details></article>";
+}
+
+function summaryHtml(list) {
+  if (!list.length) return "";
+  var topSnow = sortMetrics(list, "next72")[0], deepest = sortMetrics(list, "depth")[0];
+  var covered = list.filter(function (m) { return m.depthCm != null && m.depthCm >= 5; }).length;
+  function box(label, big, small) { return '<div class="sum"><div class="label">' + label + '</div><div class="big">' + big + "<small>" + small + "</small></div></div>"; }
+  return box("Most snow in next 72 h", esc(topSnow.region.name), topSnow.next72 >= 1 ? plus(topSnow.next72) + " cm" : "none forecast") +
+    box("Deepest snow cover", esc(deepest.region.name), deepest.depthCm == null ? "no data" : deepest.depthCm + " cm") +
+    box("Regions with 5 cm or more", covered + " of " + list.length, "");
+}
+
+function render() {
+  var sel = state.area === "All" ? state.metrics : state.metrics.filter(function (m) { return m.region.area === state.area; });
+  var sorted = sortMetrics(sel, state.sort);
+  var ceiling = 15, i;
+  state.metrics.forEach(function (m) { m.days.forEach(function (d) { if (d.snow > ceiling) ceiling = d.snow; }); });
+  ceiling = Math.ceil(ceiling / 5) * 5;
+
+  $("chips").innerHTML = AREAS.map(function (a) {
+    return '<button type="button" class="chip" data-area="' + a + '" aria-pressed="' + (a === state.area) + '">' + a + "</button>";
+  }).join("");
+  $("sort").value = state.sort;
+  $("refresh").disabled = state.loading;
+  $("refresh").textContent = state.loading ? "Loading…" : "Refresh";
+
+  if (state.loading && !state.metrics.length) {
+    $("grid").innerHTML = new Array(6 + 1).join('<div class="skeleton"></div>');
+    $("sub").textContent = "Loading snow conditions across Europe";
+    $("summary").innerHTML = ""; $("banner").hidden = true;
+    return;
+  }
+  if (!state.metrics.length) {
+    $("grid").innerHTML = '<div class="empty">Could not load snow data. ' + esc(state.error || "") + '<br>Check your connection and press Refresh.</div>';
+    $("sub").textContent = "No data";
+    $("summary").innerHTML = ""; $("banner").hidden = true;
+    return;
+  }
+  $("sub").innerHTML = "<b>" + sorted.length + "</b> regions · updated " + clock(state.fetchedAt) + " · all figures in cm and metres";
+  $("banner").hidden = !state.stale;
+  if (state.stale) $("banner").textContent = "Could not reach Open-Meteo, so these are the figures from " + clock(state.fetchedAt) + ". Press Refresh to try again.";
+  $("summary").innerHTML = summaryHtml(state.metrics);
+  $("grid").innerHTML = sorted.map(function (m) { return cardHtml(m, ceiling); }).join("");
+}
+
+/* ---------- Events ---------- */
+$("chips").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-area]"); if (!b) return;
+  state.area = b.getAttribute("data-area"); store("powderhound:area", state.area); render();
+});
+$("sort").addEventListener("change", function (e) { state.sort = e.target.value; store("powderhound:sort", state.sort); render(); });
+$("refresh").addEventListener("click", function () { load(true); });
+
+var tip = $("tip");
+function showTip(e) {
+  var t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { tip.hidden = true; return; }
+  tip.textContent = t.getAttribute("data-tip"); tip.hidden = false;
+  var w = tip.offsetWidth, x = Math.min(Math.max(8, e.clientX - w / 2), window.innerWidth - w - 8);
+  tip.style.left = x + "px"; tip.style.top = Math.max(8, e.clientY - 40) + "px";
+}
+$("grid").addEventListener("pointermove", showTip);
+$("grid").addEventListener("pointerdown", showTip);
+$("grid").addEventListener("pointerleave", function () { tip.hidden = true; });
+
+/* ---------- Start ---------- */
+(function init() {
+  var a = store("powderhound:area"), s = store("powderhound:sort");
+  if (a && AREAS.indexOf(a) >= 0) state.area = a;
+  if (s && ["next72", "last24", "past7", "depth", "name"].indexOf(s) >= 0) state.sort = s;
+  load(false);
+})();
+</script>
+</body>
+</html>
