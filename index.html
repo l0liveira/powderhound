@@ -236,7 +236,7 @@ footer p { margin: 0; }
   <header>
     <div>
       <h1>Powder Hound</h1>
-      <p class="sub" id="sub">Loading snow conditions across Europe</p>
+      <p class="sub" id="sub">Loading snow conditions</p>
     </div>
     <div class="controls">
       <label class="field">Sort by
@@ -258,7 +258,7 @@ footer p { margin: 0; }
   <main class="grid" id="grid" aria-live="polite"></main>
 
   <footer>
-    <p>Figures come from weather models (mostly DWD ICON and ECMWF, picked automatically per region), sampled at one reference elevation per region. They show where snow is likely and how regions compare. They are not station measurements and say nothing about a specific slope.</p>
+    <p>Figures come from global and national weather models (such as ECMWF, DWD ICON, NOAA GFS and JMA, picked automatically per region), sampled at one reference elevation per region. They show where snow is likely and how regions compare. They are not station measurements and say nothing about a specific slope.</p>
     <p>Avalanche danger is not part of this data. Before any off-piste or touring day, read the official bulletin linked in each card.</p>
     <p>Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0, free for non-commercial use).</p>
   </footer>
@@ -288,6 +288,7 @@ var REGIONS = [
   { id: "livigno",   name: "Livigno",             cc: "IT", area: "Alps",    lat: 46.54, lon: 10.14, elev: 2300 },
   { id: "cortina",   name: "Cortina d'Ampezzo",   cc: "IT", area: "Alps",    lat: 46.54, lon: 12.14, elev: 2000, bulletin: "avalanche.report" },
   { id: "gardena",   name: "Val Gardena",         cc: "IT", area: "Alps",    lat: 46.56, lon: 11.67, elev: 2000, bulletin: "avalanche.report" },
+  { id: "kranjska",  name: "Kranjska Gora",       cc: "SI", area: "Alps",    lat: 46.48, lon: 13.78, elev: 1400 },
   // Nordics
   { id: "lyngen",    name: "Lyngen Alps",         cc: "NO", area: "Nordics", lat: 69.60, lon: 20.20, elev: 600 },
   { id: "voss",      name: "Voss",                cc: "NO", area: "Nordics", lat: 60.63, lon: 6.42,  elev: 800 },
@@ -299,13 +300,70 @@ var REGIONS = [
   // Iberia
   { id: "baqueira",  name: "Baqueira-Beret",      cc: "ES", area: "Iberia",  lat: 42.70, lon: 0.93,  elev: 2000 },
   { id: "sierranev", name: "Sierra Nevada",       cc: "ES", area: "Iberia",  lat: 37.10, lon: -3.40, elev: 2500 },
-  // Other
-  { id: "tatras",    name: "Tatras, Kasprowy Wierch", cc: "PL", area: "Other", lat: 49.23, lon: 19.98, elev: 1800 },
-  { id: "bansko",    name: "Bansko",              cc: "BG", area: "Other",   lat: 41.83, lon: 23.49, elev: 1900 },
-  { id: "cairngorm", name: "Cairngorms",          cc: "GB", area: "Other",   lat: 57.12, lon: -3.67, elev: 900 }
+  // Balkans
+  { id: "kopaonik",   name: "Kopaonik",         cc: "RS", area: "Balkans", lat: 43.28, lon: 20.80, elev: 1700 },
+  { id: "jahorina",   name: "Jahorina",         cc: "BA", area: "Balkans", lat: 43.73, lon: 18.57, elev: 1700 },
+  { id: "bjelasnica", name: "Bjelašnica",       cc: "BA", area: "Balkans", lat: 43.71, lon: 18.26, elev: 1800 },
+  { id: "kolasin",    name: "Kolašin",          cc: "ME", area: "Balkans", lat: 42.84, lon: 19.62, elev: 1700 },
+  { id: "popova",     name: "Popova Šapka",     cc: "MK", area: "Balkans", lat: 42.01, lon: 20.87, elev: 2000 },
+  { id: "brezovica",  name: "Brezovica",        cc: "XK", area: "Balkans", lat: 42.21, lon: 21.03, elev: 1900 },
+  { id: "vitosha",    name: "Vitosha",          cc: "BG", area: "Balkans", lat: 42.57, lon: 23.27, elev: 1800 },
+  { id: "borovets",   name: "Borovets",         cc: "BG", area: "Balkans", lat: 42.26, lon: 23.60, elev: 2000 },
+  { id: "bansko",     name: "Bansko",           cc: "BG", area: "Balkans", lat: 41.83, lon: 23.49, elev: 1900 },
+  { id: "parnassos",  name: "Parnassos",        cc: "GR", area: "Balkans", lat: 38.55, lon: 22.62, elev: 1900 },
+  // Caucasus
+  { id: "gudauri",    name: "Gudauri",          cc: "GE", area: "Caucasus", lat: 42.48, lon: 44.48, elev: 2500 },
+  { id: "bakuriani",  name: "Bakuriani",        cc: "GE", area: "Caucasus", lat: 41.75, lon: 43.53, elev: 2200 },
+  { id: "hatsvali",   name: "Mestia, Hatsvali", cc: "GE", area: "Caucasus", lat: 43.05, lon: 42.73, elev: 2200 },
+  { id: "tetnuldi",   name: "Tetnuldi",         cc: "GE", area: "Caucasus", lat: 43.03, lon: 42.98, elev: 2800 },
+  // Other Europe
+  { id: "tatras",     name: "Tatras, Kasprowy Wierch", cc: "PL", area: "Other Europe", lat: 49.23, lon: 19.98, elev: 1800 },
+  { id: "poiana",     name: "Poiana Brașov",    cc: "RO", area: "Other Europe", lat: 45.60, lon: 25.55, elev: 1400 },
+  { id: "cairngorm",  name: "Cairngorms",       cc: "GB", area: "Other Europe", lat: 57.12, lon: -3.67, elev: 900 },
+  // North America
+  { id: "whistler",   name: "Whistler Blackcomb", cc: "CA", area: "North America", lat: 50.11, lon: -122.95, elev: 1800 },
+  { id: "revelstoke", name: "Revelstoke",       cc: "CA", area: "North America", lat: 51.00, lon: -118.16, elev: 1800 },
+  { id: "lakelouise", name: "Lake Louise",      cc: "CA", area: "North America", lat: 51.44, lon: -116.16, elev: 2000 },
+  { id: "tremblant",  name: "Mont-Tremblant",   cc: "CA", area: "North America", lat: 46.21, lon: -74.58, elev: 700 },
+  { id: "baker",      name: "Mt. Baker",        cc: "US", area: "North America", lat: 48.86, lon: -121.67, elev: 1300 },
+  { id: "tahoe",      name: "Palisades Tahoe",  cc: "US", area: "North America", lat: 39.19, lon: -120.24, elev: 2400 },
+  { id: "mammoth",    name: "Mammoth Mountain", cc: "US", area: "North America", lat: 37.63, lon: -119.03, elev: 3000 },
+  { id: "jackson",    name: "Jackson Hole",     cc: "US", area: "North America", lat: 43.59, lon: -110.85, elev: 2500 },
+  { id: "bigsky",     name: "Big Sky",          cc: "US", area: "North America", lat: 45.28, lon: -111.40, elev: 2600 },
+  { id: "alta",       name: "Alta and Snowbird", cc: "US", area: "North America", lat: 40.58, lon: -111.64, elev: 3000 },
+  { id: "aspen",      name: "Aspen Snowmass",   cc: "US", area: "North America", lat: 39.19, lon: -106.82, elev: 3000 },
+  { id: "telluride",  name: "Telluride",        cc: "US", area: "North America", lat: 37.94, lon: -107.84, elev: 3200 },
+  { id: "stowe",      name: "Stowe",            cc: "US", area: "North America", lat: 44.53, lon: -72.78, elev: 1100 },
+  { id: "alyeska",    name: "Alyeska, Alaska",  cc: "US", area: "North America", lat: 60.97, lon: -149.10, elev: 600 },
+  // South America
+  { id: "portillo",   name: "Portillo",         cc: "CL", area: "South America", lat: -32.84, lon: -70.13, elev: 2900 },
+  { id: "vallenevado",name: "Valle Nevado",     cc: "CL", area: "South America", lat: -33.35, lon: -70.25, elev: 3000 },
+  { id: "chillan",    name: "Nevados de Chillán", cc: "CL", area: "South America", lat: -36.90, lon: -71.38, elev: 2000 },
+  { id: "lenas",      name: "Las Leñas",        cc: "AR", area: "South America", lat: -35.15, lon: -70.08, elev: 2800 },
+  { id: "catedral",   name: "Cerro Catedral, Bariloche", cc: "AR", area: "South America", lat: -41.17, lon: -71.44, elev: 1600 },
+  { id: "chapelco",   name: "Chapelco",         cc: "AR", area: "South America", lat: -40.17, lon: -71.20, elev: 1500 },
+  { id: "castor",     name: "Cerro Castor, Ushuaia", cc: "AR", area: "South America", lat: -54.72, lon: -68.00, elev: 800 },
+  // Asia
+  { id: "niseko",     name: "Niseko",           cc: "JP", area: "Asia", lat: 42.86, lon: 140.70, elev: 900 },
+  { id: "furano",     name: "Furano",           cc: "JP", area: "Asia", lat: 43.34, lon: 142.38, elev: 800 },
+  { id: "hakuba",     name: "Hakuba",           cc: "JP", area: "Asia", lat: 36.70, lon: 137.83, elev: 1400 },
+  { id: "nozawa",     name: "Nozawa Onsen",     cc: "JP", area: "Asia", lat: 36.92, lon: 138.44, elev: 1200 },
+  { id: "gulmarg",    name: "Gulmarg",          cc: "IN", area: "Asia", lat: 34.05, lon: 74.38, elev: 3000 },
+  { id: "manali",     name: "Manali, Solang",   cc: "IN", area: "Asia", lat: 32.32, lon: 77.15, elev: 2600 },
+  { id: "shymbulak",  name: "Shymbulak, Almaty", cc: "KZ", area: "Asia", lat: 43.12, lon: 77.08, elev: 2600 },
+  { id: "karakol",    name: "Karakol",          cc: "KG", area: "Asia", lat: 42.38, lon: 78.30, elev: 2500 },
+  { id: "yongpyong",  name: "Yongpyong",        cc: "KR", area: "Asia", lat: 37.64, lon: 128.68, elev: 900 },
+  { id: "yabuli",     name: "Yabuli",           cc: "CN", area: "Asia", lat: 44.95, lon: 128.50, elev: 700 },
+  { id: "uludag",     name: "Uludağ",           cc: "TR", area: "Asia", lat: 40.10, lon: 29.12, elev: 1900 },
+  { id: "palandoken", name: "Palandöken",       cc: "TR", area: "Asia", lat: 39.85, lon: 41.28, elev: 2500 }
 ];
-var AREAS = ["All", "Alps", "Nordics", "Iberia", "Other"];
-var COUNTRY = { FR: "France", CH: "Switzerland", AT: "Austria", IT: "Italy", NO: "Norway", SE: "Sweden", FI: "Finland", IS: "Iceland", ES: "Spain", PL: "Poland", BG: "Bulgaria", GB: "Scotland" };
+var AREAS = ["All", "Alps", "Nordics", "Iberia", "Balkans", "Caucasus", "Other Europe", "North America", "South America", "Asia"];
+var COUNTRY = {
+  FR: "France", CH: "Switzerland", AT: "Austria", IT: "Italy", SI: "Slovenia", NO: "Norway", SE: "Sweden", FI: "Finland", IS: "Iceland",
+  ES: "Spain", PL: "Poland", RO: "Romania", GB: "Scotland", RS: "Serbia", BA: "Bosnia and Herzegovina", ME: "Montenegro",
+  MK: "North Macedonia", XK: "Kosovo", BG: "Bulgaria", GR: "Greece", GE: "Georgia", CA: "Canada", US: "United States",
+  CL: "Chile", AR: "Argentina", JP: "Japan", IN: "India", KZ: "Kazakhstan", KG: "Kyrgyzstan", KR: "South Korea", CN: "China", TR: "Türkiye"
+};
 
 var BULLETIN = {
   CH: ["SLF avalanche bulletin", "https://www.slf.ch/en/avalanche-bulletin-and-snow-situation/"],
@@ -316,6 +374,8 @@ var BULLETIN = {
   IS: ["Icelandic Met Office", "https://www.vedur.is/"],
   PL: ["TOPR", "https://lawiny.topr.pl/"],
   GB: ["SAIS", "https://www.sais.gov.uk/"],
+  US: ["Avalanche.org", "https://avalanche.org/"],
+  CA: ["Avalanche Canada", "https://www.avalanche.ca/"],
   "avalanche.report": ["Avalanche.report", "https://avalanche.report/"],
   EAWS: ["EAWS (all European bulletins)", "https://www.avalanches.org/"]
 };
@@ -426,7 +486,7 @@ function buildUrl(regions) {
 // </logic>
 
 /* ---------- Data loading ---------- */
-var BATCH = 10, CACHE_KEY = "powderhound:v1", FRESH_MS = 30 * 60 * 1000;
+var BATCH = 10, CACHE_KEY = "powderhound:v2", FRESH_MS = 30 * 60 * 1000;
 var state = { metrics: [], fetchedAt: 0, area: "All", sort: "next72", stale: false, loading: false };
 
 function store(key, value) { try { if (value === undefined) return localStorage.getItem(key); localStorage.setItem(key, value); } catch (e) { return null; } }
@@ -458,6 +518,7 @@ function toMetrics(raw, refMs) {
 async function load(force) {
   var cached = null, raw = store(CACHE_KEY);
   if (raw) { try { cached = JSON.parse(raw); } catch (e) { cached = null; } }
+  if (cached && (!cached.data || cached.data.length !== REGIONS.length)) cached = null;
   if (!force && cached && Date.now() - cached.t < FRESH_MS) {
     state.metrics = toMetrics(cached.data, cached.t); state.fetchedAt = cached.t; state.stale = false;
     render(); return;
@@ -514,9 +575,11 @@ function barsSvg(m, ceiling) {
   return out.join("");
 }
 
-function bulletinLink(region) {
-  var b = BULLETIN[region.bulletin] || BULLETIN[region.cc] || BULLETIN.EAWS;
-  return '<a href="' + b[1] + '" target="_blank" rel="noopener">' + esc(b[0]) + "</a>";
+var EAWS_AREAS = ["Alps", "Nordics", "Iberia", "Balkans", "Other Europe"];
+function bulletinHtml(region) {
+  var b = BULLETIN[region.bulletin] || BULLETIN[region.cc] || (EAWS_AREAS.indexOf(region.area) >= 0 ? BULLETIN.EAWS : null);
+  if (!b) return "No public avalanche bulletin is linked for this region. Ask local ski patrol or guides before leaving the piste.";
+  return 'Check the official bulletin before leaving the piste: <a href="' + b[1] + '" target="_blank" rel="noopener">' + esc(b[0]) + "</a>.";
 }
 
 function cardHtml(m, ceiling) {
@@ -539,7 +602,7 @@ function cardHtml(m, ceiling) {
     '<div class="fl"><span>Freezing level <b>' + metres(m.flNow) + '</b></span><span class="' + (above ? "above" : "") + '">' + (m.flNow == null ? "" : (above ? "above " : "below ") + r.elev.toLocaleString("en-GB") + " m") + "</span></div>" +
     "<details><summary>Daily detail and avalanche bulletin</summary>" +
       '<div class="tablewrap"><table><thead><tr><th>Day</th><th>Snow cm</th><th>Temp °C</th><th>0 °C at</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
-      '<p class="aval">Check the official bulletin before leaving the piste: ' + bulletinLink(r) + ".</p>" +
+      '<p class="aval">' + bulletinHtml(r) + "</p>" +
     "</details></article>";
 }
 
@@ -557,7 +620,7 @@ function render() {
   var sel = state.area === "All" ? state.metrics : state.metrics.filter(function (m) { return m.region.area === state.area; });
   var sorted = sortMetrics(sel, state.sort);
   var ceiling = 15, i;
-  state.metrics.forEach(function (m) { m.days.forEach(function (d) { if (d.snow > ceiling) ceiling = d.snow; }); });
+  sel.forEach(function (m) { m.days.forEach(function (d) { if (d.snow > ceiling) ceiling = d.snow; }); });
   ceiling = Math.ceil(ceiling / 5) * 5;
 
   $("chips").innerHTML = AREAS.map(function (a) {
@@ -569,7 +632,7 @@ function render() {
 
   if (state.loading && !state.metrics.length) {
     $("grid").innerHTML = new Array(6 + 1).join('<div class="skeleton"></div>');
-    $("sub").textContent = "Loading snow conditions across Europe";
+    $("sub").textContent = "Loading snow conditions";
     $("summary").innerHTML = ""; $("banner").hidden = true;
     return;
   }
@@ -582,7 +645,7 @@ function render() {
   $("sub").innerHTML = "<b>" + sorted.length + "</b> regions · updated " + clock(state.fetchedAt) + " · all figures in cm and metres";
   $("banner").hidden = !state.stale;
   if (state.stale) $("banner").textContent = "Could not reach Open-Meteo, so these are the figures from " + clock(state.fetchedAt) + ". Press Refresh to try again.";
-  $("summary").innerHTML = summaryHtml(state.metrics);
+  $("summary").innerHTML = summaryHtml(sel);
   $("grid").innerHTML = sorted.map(function (m) { return cardHtml(m, ceiling); }).join("");
 }
 
